@@ -7,7 +7,7 @@
         "@modelcontextprotocol/server-brave-search"
       ],
       "env": {
-        "BRAVE_API_KEY": "BSA-NeQmkeiEA5sBos8vZQIRGQx153G"
+        "BRAVE_API_KEY": "YOUR_BRAVE_API_KEY_HERE"
       }
     },
     "github": {
@@ -17,7 +17,7 @@
         "@modelcontextprotocol/server-github"
       ],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "SHA256:m/eYZMkLnOpCu0RRaeSwXGAYBf3UWViqMjpKD1202Yo"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_TOKEN_HERE"
       }
     }
   }
