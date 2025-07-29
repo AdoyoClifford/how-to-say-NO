@@ -91,10 +91,9 @@ lint-results*.html
 ehthumbs.db
 Thumbs.db
 
-# Kiro IDE sensitive files
-.kiro/settings/mcp.json
-.kiro/settings/user.json
-.kiro/settings/workspace.json
+# Kiro IDE files (IDE-specific configuration and local data)
+.kiro/
+.kotlin/
 
 # API Keys and sensitive configuration
 **/api-keys.json
