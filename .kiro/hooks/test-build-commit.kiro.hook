@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Test, Build & Commit",
+  "description": "After completing each task, runs tests, verifies build, stages changes, creates commit message, and pushes to GitHub",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "app/src/**/*.kt",
+      "app/build.gradle.kts",
+      "build.gradle.kts",
+      "gradle/libs.versions.toml",
+      "settings.gradle.kts"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A task has been completed. Please:\n1. Run all tests using `./gradlew test` and `./gradlew connectedAndroidTest` to ensure they pass\n2. Verify the build works by running `./gradlew build`\n3. If tests pass and build succeeds, stage all changes with `git add .`\n4. Create an appropriate commit message that describes the changes made\n5. Push the changes to GitHub with `git push`\n6. If any step fails, fix the issues before proceeding to the next step"
+  }
+}

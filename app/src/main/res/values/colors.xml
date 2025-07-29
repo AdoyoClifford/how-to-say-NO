@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Legacy colors for backward compatibility -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Material 3 Expressive Colors -->
+    <color name="expressive_primary">#FF6750A4</color>
+    <color name="expressive_primary_dark">#FFD0BCFF</color>
+    <color name="expressive_accent">#FF7D5260</color>
+    <color name="expressive_accent_dark">#FF7D5260</color>
+    
+    <!-- Expressive accent colors -->
+    <color name="expressive_accent_warm">#FFFF6B35</color>
+    <color name="expressive_accent_cool">#FF4ECDC4</color>
+    <color name="expressive_accent_energetic">#FFFFE66D</color>
+    <color name="expressive_accent_calm">#FF95E1D3</color>
+</resources>

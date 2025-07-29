@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 Expressive Dark Theme Colors -->
+    <color name="expressive_primary">#FFD0BCFF</color>
+    <color name="expressive_primary_dark">#FF6750A4</color>
+    <color name="expressive_accent_dark">#FFEFB8C8</color>
+    
+    <!-- Expressive accent colors for dark theme -->
+    <color name="expressive_accent_warm">#FFFF8A65</color>
+    <color name="expressive_accent_cool">#FF80CBC4</color>
+    <color name="expressive_accent_energetic">#FFFFF176</color>
+    <color name="expressive_accent_calm">#FFA5D6A7</color>
+</resources>
