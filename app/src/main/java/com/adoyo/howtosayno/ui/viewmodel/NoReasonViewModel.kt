@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.adoyo.howtosayno.domain.usecase.GetNoReasonUseCase
 import com.adoyo.howtosayno.domain.usecase.NoReasonCachedException
 import com.adoyo.howtosayno.ui.state.NoReasonUiState
+import com.adoyo.howtosayno.ui.utils.toAppError
+import com.adoyo.howtosayno.ui.utils.isOfflineError
+import com.adoyo.howtosayno.ui.utils.handleCommonError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -74,29 +77,66 @@ class NoReasonViewModel @Inject constructor(
     }
 
     private fun handleError(throwable: Throwable) {
-        val isOffline = when (throwable) {
-            is java.net.SocketTimeoutException -> false // Timeout is not necessarily offline
-            is java.net.UnknownHostException -> true
-            is java.io.IOException -> true
-            else -> false
-        }
-
-        val errorMessage = when (throwable) {
-            is java.net.SocketTimeoutException -> "Request timed out, please try again"
-            is java.net.UnknownHostException -> "No internet connection"
-            is java.io.IOException -> "No internet connection"
-            is NoReasonCachedException -> "Could not find a reason. Please connect to the internet."
-            else -> "Something went wrong, please try again"
-        }
-
+        val appError = throwable.toAppError()
+        
         _uiState.update {
             it.copy(
                 isLoading = false,
-                error = errorMessage,
-                isOffline = isOffline,
+                error = appError.message,
+                isOffline = appError.isOfflineError(),
                 isButtonEnabled = true
             )
         }
+    }
+    
+    /**
+     * Enhanced error handling with better categorization
+     */
+    private fun handleErrorEnhanced(throwable: Throwable) {
+        handleCommonError(
+            throwable = throwable,
+            onNetworkError = { appError ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = appError.message,
+                        isOffline = true,
+                        isButtonEnabled = true
+                    )
+                }
+            },
+            onTimeoutError = { appError ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = appError.message,
+                        isOffline = false,
+                        isButtonEnabled = true
+                    )
+                }
+            },
+            onCacheError = { appError ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = appError.message,
+                        isOffline = true,
+                        hasCache = false,
+                        isButtonEnabled = true
+                    )
+                }
+            },
+            onGenericError = { appError ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = appError.message,
+                        isOffline = false,
+                        isButtonEnabled = true
+                    )
+                }
+            }
+        )
     }
 
     fun clearError() {

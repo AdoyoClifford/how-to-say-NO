@@ -37,6 +37,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.adoyo.howtosayno.ui.components.AdaptiveSnackbar
+import com.adoyo.howtosayno.ui.components.EnhancedOfflineIndicator
+import com.adoyo.howtosayno.ui.components.ErrorStateCard
+import com.adoyo.howtosayno.ui.components.NetworkStatusIndicator
+import com.adoyo.howtosayno.ui.components.EnhancedErrorSnackbar
 import com.adoyo.howtosayno.ui.state.NoReasonUiState
 import com.adoyo.howtosayno.ui.theme.CustomExpressiveShapes
 import com.adoyo.howtosayno.ui.theme.ExpressiveSpacing
@@ -64,7 +70,7 @@ fun NoReasonScreen(
     modifier: Modifier = Modifier,
     viewModel: NoReasonViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Show error messages in snackbar
@@ -88,14 +94,14 @@ fun NoReasonScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Snackbar for error messages
+        // Enhanced snackbar for error messages
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         ) { snackbarData ->
-            Snackbar(
+            AdaptiveSnackbar(
                 snackbarData = snackbarData,
-                shape = CustomExpressiveShapes.ExpressiveCard
+                onRetry = viewModel::retry
             )
         }
     }
@@ -134,10 +140,23 @@ private fun NoReasonContent(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Offline indicator
+        // Enhanced offline indicator
         if (uiState.isOffline && uiState.hasCache) {
             Spacer(modifier = Modifier.height(ExpressiveSpacing.Medium))
-            OfflineIndicator()
+            EnhancedOfflineIndicator(
+                isVisible = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        
+        // Network status indicator for better user awareness
+        if (uiState.hasError || uiState.isOffline) {
+            Spacer(modifier = Modifier.height(ExpressiveSpacing.Small))
+            NetworkStatusIndicator(
+                isOnline = !uiState.isOffline,
+                isVisible = true,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -166,6 +185,16 @@ private fun ReasonDisplayCard(
             when {
                 uiState.isLoading -> {
                     LoadingIndicator()
+                }
+                uiState.hasError && !uiState.hasContent -> {
+                    // Show error state when there's an error and no cached content
+                    ErrorStateCard(
+                        errorMessage = uiState.error ?: "Something went wrong",
+                        onRetry = { /* Handled by ActionButtons */ },
+                        isOffline = uiState.isOffline,
+                        showRetryButton = false, // Retry button is handled separately
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
                 uiState.hasContent -> {
                     ReasonText(
@@ -293,25 +322,7 @@ private fun ActionButtons(
     }
 }
 
-@Composable
-private fun OfflineIndicator() {
-    Card(
-        shape = CustomExpressiveShapes.ExpressiveCard,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-        )
-    ) {
-        Text(
-            text = "Showing cached reason (offline)",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(
-                horizontal = ExpressiveSpacing.Medium,
-                vertical = ExpressiveSpacing.Small
-            )
-        )
-    }
-}
+
 
 // Preview composables
 @Preview(showBackground = true)
