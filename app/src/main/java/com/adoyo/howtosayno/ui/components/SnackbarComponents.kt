@@ -1,5 +1,17 @@
 package com.adoyo.howtosayno.ui.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,8 +28,12 @@ import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -225,41 +241,24 @@ fun EnhancedErrorSnackbar(
         dismissActionContentColor = MaterialTheme.colorScheme.onErrorContainer,
         action = if (onRetry != null && errorType.isRetryable) {
             {
-                TextButton(
-                    onClick = {
-                        onRetry()
-                        onDismiss()
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Retry action",
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                    Text(
-                        text = "Retry",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
+                AnimatedRetryButton(
+                    onRetry = onRetry,
+                    onDismiss = onDismiss
+                )
             }
         } else null,
         dismissAction = {
-            IconButton(
-                onClick = onDismiss
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Dismiss error message"
-                )
-            }
+            AnimatedDismissButton(
+                onDismiss = onDismiss
+            )
         }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = errorType.icon,
-                contentDescription = "Error type indicator",
+            // Animated error icon with pulsing effect
+            AnimatedSnackbarIcon(
+                icon = errorType.icon,
                 modifier = Modifier
                     .size(18.dp)
                     .padding(end = 8.dp)
@@ -270,6 +269,98 @@ fun EnhancedErrorSnackbar(
             )
         }
     }
+}
+
+@Composable
+private fun AnimatedRetryButton(
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessHigh
+        ),
+        label = "retryButtonScale"
+    )
+
+    TextButton(
+        onClick = {
+            onRetry()
+            onDismiss()
+        },
+        interactionSource = interactionSource,
+        modifier = Modifier.scale(scale)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Refresh,
+            contentDescription = "Retry action",
+            modifier = Modifier.padding(end = 4.dp)
+        )
+        Text(
+            text = "Retry",
+            style = MaterialTheme.typography.labelMedium
+        )
+    }
+}
+
+@Composable
+private fun AnimatedDismissButton(
+    onDismiss: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessHigh
+        ),
+        label = "dismissButtonScale"
+    )
+
+    IconButton(
+        onClick = onDismiss,
+        interactionSource = interactionSource,
+        modifier = Modifier.scale(scale)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = "Dismiss error message"
+        )
+    }
+}
+
+@Composable
+private fun AnimatedSnackbarIcon(
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    // Subtle pulsing animation for snackbar icon
+    val infiniteTransition = rememberInfiniteTransition(label = "snackbarIconAnimation")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1500,
+                easing = FastOutSlowInEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "snackbarIconAlpha"
+    )
+
+    Icon(
+        imageVector = icon,
+        contentDescription = "Error type indicator",
+        modifier = modifier.alpha(alpha)
+    )
 }
 
 /**

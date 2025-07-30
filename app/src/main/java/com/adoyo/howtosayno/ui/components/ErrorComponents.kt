@@ -1,9 +1,22 @@
 package com.adoyo.howtosayno.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,8 +37,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -63,10 +79,39 @@ fun ErrorStateCard(
 ) {
     val errorType = determineErrorType(errorMessage, isOffline)
     
+    // Animate card entrance with scale and fade
     AnimatedVisibility(
         visible = true,
-        enter = fadeIn(animationSpec = tween(400)),
-        exit = fadeOut(animationSpec = tween(200))
+        enter = fadeIn(
+            animationSpec = tween(
+                durationMillis = 600,
+                easing = FastOutSlowInEasing
+            )
+        ) + scaleIn(
+            animationSpec = tween(
+                durationMillis = 600,
+                easing = FastOutSlowInEasing
+            ),
+            initialScale = 0.8f
+        ) + slideInVertically(
+            animationSpec = tween(
+                durationMillis = 600,
+                easing = FastOutSlowInEasing
+            ),
+            initialOffsetY = { it / 4 }
+        ),
+        exit = fadeOut(
+            animationSpec = tween(
+                durationMillis = 300,
+                easing = LinearEasing
+            )
+        ) + scaleOut(
+            animationSpec = tween(
+                durationMillis = 300,
+                easing = LinearEasing
+            ),
+            targetScale = 0.9f
+        )
     ) {
         Card(
             modifier = modifier,
@@ -85,68 +130,145 @@ fun ErrorStateCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Error icon
-                Icon(
-                    imageVector = errorType.icon,
-                    contentDescription = "Error indicator",
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                // Animated error icon with subtle pulsing
+                AnimatedErrorIcon(
+                    icon = errorType.icon,
                     modifier = Modifier.size(48.dp)
                 )
                 
                 Spacer(modifier = Modifier.height(ExpressiveSpacing.Medium))
                 
-                // Error title
-                Text(
-                    text = errorType.title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    textAlign = TextAlign.Center
-                )
-                
-                Spacer(modifier = Modifier.height(ExpressiveSpacing.Small))
-                
-                // Error message
-                Text(
-                    text = errorMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    textAlign = TextAlign.Center
-                )
-                
-                // Recovery suggestion
-                if (errorType.suggestion.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(ExpressiveSpacing.Small))
+                // Error title with fade-in animation
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(
+                        animationSpec = tween(
+                            durationMillis = 800,
+                            delayMillis = 200,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                ) {
                     Text(
-                        text = errorType.suggestion,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                        text = errorType.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
                         textAlign = TextAlign.Center
                     )
                 }
                 
-                // Retry button
+                Spacer(modifier = Modifier.height(ExpressiveSpacing.Small))
+                
+                // Error message with fade-in animation
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(
+                        animationSpec = tween(
+                            durationMillis = 800,
+                            delayMillis = 400,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                ) {
+                    Text(
+                        text = errorMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                
+                // Recovery suggestion with fade-in animation
+                if (errorType.suggestion.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(ExpressiveSpacing.Small))
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(
+                            animationSpec = tween(
+                                durationMillis = 800,
+                                delayMillis = 600,
+                                easing = FastOutSlowInEasing
+                            )
+                        )
+                    ) {
+                        Text(
+                            text = errorType.suggestion,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                
+                // Retry button with fade-in and scale animation
                 if (showRetryButton) {
                     Spacer(modifier = Modifier.height(ExpressiveSpacing.Large))
-                    OutlinedButton(
-                        onClick = onRetry,
-                        shape = CustomExpressiveShapes.ExpressiveButton,
-                        modifier = Modifier.fillMaxWidth()
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(
+                            animationSpec = tween(
+                                durationMillis = 600,
+                                delayMillis = 800,
+                                easing = FastOutSlowInEasing
+                            )
+                        ) + scaleIn(
+                            animationSpec = tween(
+                                durationMillis = 600,
+                                delayMillis = 800,
+                                easing = FastOutSlowInEasing
+                            ),
+                            initialScale = 0.8f
+                        )
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(ExpressiveSpacing.Small))
-                        Text(
-                            text = "Try Again",
-                            style = MaterialTheme.typography.labelLarge
-                        )
+                        OutlinedButton(
+                            onClick = onRetry,
+                            shape = CustomExpressiveShapes.ExpressiveButton,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(ExpressiveSpacing.Small))
+                            Text(
+                                text = "Try Again",
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun AnimatedErrorIcon(
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    // Subtle pulsing animation for error icon
+    val infiniteTransition = rememberInfiniteTransition(label = "errorIconAnimation")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 2000,
+                easing = FastOutSlowInEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "errorIconAlpha"
+    )
+
+    Icon(
+        imageVector = icon,
+        contentDescription = "Error indicator",
+        tint = MaterialTheme.colorScheme.onErrorContainer,
+        modifier = modifier.alpha(alpha)
+    )
 }
 
 /**
@@ -157,10 +279,39 @@ fun EnhancedOfflineIndicator(
     modifier: Modifier = Modifier,
     isVisible: Boolean = true
 ) {
+    // Enhanced entrance animation with slide and scale
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(animationSpec = tween(300)),
-        exit = fadeOut(animationSpec = tween(200))
+        enter = fadeIn(
+            animationSpec = tween(
+                durationMillis = 500,
+                easing = FastOutSlowInEasing
+            )
+        ) + slideInVertically(
+            animationSpec = tween(
+                durationMillis = 500,
+                easing = FastOutSlowInEasing
+            ),
+            initialOffsetY = { it / 2 }
+        ) + scaleIn(
+            animationSpec = tween(
+                durationMillis = 500,
+                easing = FastOutSlowInEasing
+            ),
+            initialScale = 0.8f
+        ),
+        exit = fadeOut(
+            animationSpec = tween(
+                durationMillis = 300,
+                easing = LinearEasing
+            )
+        ) + slideOutVertically(
+            animationSpec = tween(
+                durationMillis = 300,
+                easing = LinearEasing
+            ),
+            targetOffsetY = { it / 2 }
+        )
     ) {
         Card(
             modifier = modifier,
@@ -182,10 +333,8 @@ fun EnhancedOfflineIndicator(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Offline indicator",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Animated icon with subtle pulsing
+                AnimatedOfflineIcon(
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(ExpressiveSpacing.Small))
@@ -197,6 +346,33 @@ fun EnhancedOfflineIndicator(
             }
         }
     }
+}
+
+@Composable
+private fun AnimatedOfflineIcon(
+    modifier: Modifier = Modifier
+) {
+    // Subtle pulsing animation for offline icon
+    val infiniteTransition = rememberInfiniteTransition(label = "offlineIconAnimation")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1500,
+                easing = FastOutSlowInEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offlineIconAlpha"
+    )
+
+    Icon(
+        imageVector = Icons.Default.Info,
+        contentDescription = "Offline indicator",
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.alpha(alpha)
+    )
 }
 
 /**
@@ -244,11 +420,50 @@ fun NetworkStatusIndicator(
     modifier: Modifier = Modifier,
     isVisible: Boolean = true
 ) {
+    // Enhanced entrance animation with color transition
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(animationSpec = tween(300)),
-        exit = fadeOut(animationSpec = tween(200))
+        enter = fadeIn(
+            animationSpec = tween(
+                durationMillis = 600,
+                easing = FastOutSlowInEasing
+            )
+        ) + slideInVertically(
+            animationSpec = tween(
+                durationMillis = 600,
+                easing = FastOutSlowInEasing
+            ),
+            initialOffsetY = { it / 3 }
+        ) + scaleIn(
+            animationSpec = tween(
+                durationMillis = 600,
+                easing = FastOutSlowInEasing
+            ),
+            initialScale = 0.9f
+        ),
+        exit = fadeOut(
+            animationSpec = tween(
+                durationMillis = 400,
+                easing = LinearEasing
+            )
+        ) + slideOutVertically(
+            animationSpec = tween(
+                durationMillis = 400,
+                easing = LinearEasing
+            ),
+            targetOffsetY = { it / 3 }
+        )
     ) {
+        // Animate elevation based on connection status
+        val elevation by animateFloatAsState(
+            targetValue = if (isOnline) 2f else 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            label = "networkStatusElevation"
+        )
+
         Card(
             modifier = modifier,
             shape = CustomExpressiveShapes.ExpressiveCard,
@@ -260,7 +475,7 @@ fun NetworkStatusIndicator(
                 }
             ),
             elevation = CardDefaults.cardElevation(
-                defaultElevation = 1.dp
+                defaultElevation = elevation.dp
             )
         ) {
             Row(
@@ -273,14 +488,9 @@ fun NetworkStatusIndicator(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = if (isOnline) Icons.Default.Info else Icons.Default.Warning,
-                    contentDescription = if (isOnline) "Online" else "Offline",
-                    tint = if (isOnline) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onErrorContainer
-                    },
+                // Animated network status icon
+                AnimatedNetworkIcon(
+                    isOnline = isOnline,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(ExpressiveSpacing.Small))
@@ -295,6 +505,59 @@ fun NetworkStatusIndicator(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AnimatedNetworkIcon(
+    isOnline: Boolean,
+    modifier: Modifier = Modifier
+) {
+    // Different animations based on connection status
+    if (isOnline) {
+        // Subtle breathing for online status
+        val infiniteTransition = rememberInfiniteTransition(label = "onlineIconAnimation")
+        val alpha by infiniteTransition.animateFloat(
+            initialValue = 0.8f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = 2000,
+                    easing = FastOutSlowInEasing
+                ),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "onlineIconAlpha"
+        )
+
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = "Online",
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = modifier.alpha(alpha)
+        )
+    } else {
+        // More prominent pulsing for offline status
+        val infiniteTransition = rememberInfiniteTransition(label = "offlineIconAnimation")
+        val scale by infiniteTransition.animateFloat(
+            initialValue = 0.9f,
+            targetValue = 1.1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = 1000,
+                    easing = FastOutSlowInEasing
+                ),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "offlineIconScale"
+        )
+
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = "Offline",
+            tint = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = modifier.scale(scale)
+        )
     }
 }
 

@@ -1,9 +1,28 @@
 package com.adoyo.howtosayno.ui.screen
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +52,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -166,6 +188,16 @@ private fun ReasonDisplayCard(
     uiState: NoReasonUiState,
     modifier: Modifier = Modifier
 ) {
+    // Animate card elevation based on state
+    val cardElevation by animateFloatAsState(
+        targetValue = if (uiState.isLoading) 8f else 4f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "cardElevation"
+    )
+
     Card(
         modifier = modifier,
         shape = CustomExpressiveShapes.ExpressiveContainer,
@@ -173,7 +205,7 @@ private fun ReasonDisplayCard(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
+            defaultElevation = cardElevation.dp
         )
     ) {
         Box(
@@ -182,42 +214,113 @@ private fun ReasonDisplayCard(
                 .padding(ExpressiveSpacing.ExpressiveExtraLarge),
             contentAlignment = Alignment.Center
         ) {
-            when {
-                uiState.isLoading -> {
-                    LoadingIndicator()
-                }
-                uiState.hasError && !uiState.hasContent -> {
-                    // Show error state when there's an error and no cached content
-                    ErrorStateCard(
-                        errorMessage = uiState.error ?: "Something went wrong",
-                        onRetry = { /* Handled by ActionButtons */ },
-                        isOffline = uiState.isOffline,
-                        showRetryButton = false, // Retry button is handled separately
-                        modifier = Modifier.fillMaxWidth()
+            // Animated content transitions between different states
+            AnimatedContent(
+                targetState = when {
+                    uiState.isLoading -> ContentState.Loading
+                    uiState.hasError && !uiState.hasContent -> ContentState.Error
+                    uiState.hasContent -> ContentState.Content
+                    else -> ContentState.Placeholder
+                },
+                transitionSpec = {
+                    fadeIn(
+                        animationSpec = tween(
+                            durationMillis = 500,
+                            easing = FastOutSlowInEasing
+                        )
+                    ) + slideInVertically(
+                        animationSpec = tween(
+                            durationMillis = 500,
+                            easing = FastOutSlowInEasing
+                        ),
+                        initialOffsetY = { it / 4 }
+                    ) togetherWith fadeOut(
+                        animationSpec = tween(
+                            durationMillis = 300,
+                            easing = LinearEasing
+                        )
+                    ) + slideOutVertically(
+                        animationSpec = tween(
+                            durationMillis = 300,
+                            easing = LinearEasing
+                        ),
+                        targetOffsetY = { -it / 4 }
                     )
-                }
-                uiState.hasContent -> {
-                    ReasonText(
-                        reason = uiState.reason,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                else -> {
-                    PlaceholderText()
+                },
+                label = "contentTransition"
+            ) { contentState ->
+                when (contentState) {
+                    ContentState.Loading -> {
+                        LoadingIndicator()
+                    }
+                    ContentState.Error -> {
+                        ErrorStateCard(
+                            errorMessage = uiState.error ?: "Something went wrong",
+                            onRetry = { /* Handled by ActionButtons */ },
+                            isOffline = uiState.isOffline,
+                            showRetryButton = false, // Retry button is handled separately
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    ContentState.Content -> {
+                        ReasonText(
+                            reason = uiState.reason,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    ContentState.Placeholder -> {
+                        PlaceholderText()
+                    }
                 }
             }
         }
     }
 }
 
+// Enum to represent different content states for animation
+private enum class ContentState {
+    Loading, Error, Content, Placeholder
+}
+
 @Composable
 private fun LoadingIndicator() {
+    // Animated scale for breathing effect
+    val infiniteTransition = rememberInfiniteTransition(label = "loadingAnimation")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1500,
+                easing = FastOutSlowInEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "loadingScale"
+    )
+
+    // Animated alpha for text pulsing
+    val textAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 2000,
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "textAlpha"
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         CircularProgressIndicator(
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier
+                .size(48.dp)
+                .scale(scale),
             color = MaterialTheme.colorScheme.primary,
             strokeWidth = 4.dp
         )
@@ -226,7 +329,8 @@ private fun LoadingIndicator() {
             text = "Finding a reason...",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.alpha(textAlpha)
         )
     }
 }
@@ -236,10 +340,33 @@ private fun ReasonText(
     reason: String,
     modifier: Modifier = Modifier
 ) {
+    // Enhanced entrance animation with scale and fade
     AnimatedVisibility(
         visible = reason.isNotEmpty(),
-        enter = fadeIn(animationSpec = tween(600)),
-        exit = fadeOut(animationSpec = tween(300))
+        enter = fadeIn(
+            animationSpec = tween(
+                durationMillis = 800,
+                easing = FastOutSlowInEasing
+            )
+        ) + scaleIn(
+            animationSpec = tween(
+                durationMillis = 800,
+                easing = FastOutSlowInEasing
+            ),
+            initialScale = 0.8f
+        ),
+        exit = fadeOut(
+            animationSpec = tween(
+                durationMillis = 400,
+                easing = LinearEasing
+            )
+        ) + scaleOut(
+            animationSpec = tween(
+                durationMillis = 400,
+                easing = LinearEasing
+            ),
+            targetScale = 0.9f
+        )
     ) {
         Text(
             text = reason,
@@ -253,11 +380,27 @@ private fun ReasonText(
 
 @Composable
 private fun PlaceholderText() {
+    // Subtle breathing animation for placeholder text
+    val infiniteTransition = rememberInfiniteTransition(label = "placeholderAnimation")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 3000,
+                easing = FastOutSlowInEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "placeholderAlpha"
+    )
+
     Text(
         text = "Tap the button below to get a creative reason for saying no!",
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center
+        textAlign = TextAlign.Center,
+        modifier = Modifier.alpha(alpha)
     )
 }
 
@@ -272,51 +415,169 @@ private fun ActionButtons(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (uiState.shouldShowRetry) {
-            // Show retry button when there's an error
-            OutlinedButton(
-                onClick = onRetry,
-                enabled = !uiState.isLoading,
-                shape = CustomExpressiveShapes.ExpressiveButton,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(ExpressiveSpacing.ExpressiveTouchTarget)
-            ) {
-                Text(
-                    text = "Try Again",
-                    style = MaterialTheme.typography.labelLarge
+        // Animated transition between retry and main button
+        AnimatedContent(
+            targetState = uiState.shouldShowRetry,
+            transitionSpec = {
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = FastOutSlowInEasing
+                    )
+                ) + slideInVertically(
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = FastOutSlowInEasing
+                    ),
+                    initialOffsetY = { it / 2 }
+                ) togetherWith fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = LinearEasing
+                    )
+                ) + slideOutVertically(
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = LinearEasing
+                    ),
+                    targetOffsetY = { -it / 2 }
+                )
+            },
+            label = "buttonTransition"
+        ) { showRetry ->
+            if (showRetry) {
+                // Enhanced retry button with press animations
+                ExpressiveRetryButton(
+                    onClick = onRetry,
+                    enabled = !uiState.isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(ExpressiveSpacing.ExpressiveTouchTarget)
+                )
+            } else {
+                // Enhanced main fetch button with press animations
+                ExpressiveFetchButton(
+                    onClick = onFetchNewReason,
+                    enabled = uiState.isButtonEnabled && !uiState.isLoading,
+                    isLoading = uiState.isLoading,
+                    hasContent = uiState.hasContent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(ExpressiveSpacing.ExpressiveTouchTarget)
                 )
             }
-        } else {
-            // Main fetch button
-            Button(
-                onClick = onFetchNewReason,
-                enabled = uiState.isButtonEnabled && !uiState.isLoading,
-                shape = CustomExpressiveShapes.ExpressiveButton,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 6.dp,
-                    pressedElevation = 12.dp
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(ExpressiveSpacing.ExpressiveTouchTarget)
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
+        }
+    }
+}
+
+@Composable
+private fun ExpressiveRetryButton(
+    onClick: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    // Animate button scale on press
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "retryButtonScale"
+    )
+
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        shape = CustomExpressiveShapes.ExpressiveButton,
+        interactionSource = interactionSource,
+        modifier = modifier.scale(scale)
+    ) {
+        Text(
+            text = "Try Again",
+            style = MaterialTheme.typography.labelLarge
+        )
+    }
+}
+
+@Composable
+private fun ExpressiveFetchButton(
+    onClick: () -> Unit,
+    enabled: Boolean,
+    isLoading: Boolean,
+    hasContent: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    // Animate button scale on press
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "fetchButtonScale"
+    )
+
+    // Animate elevation on press
+    val elevation by animateFloatAsState(
+        targetValue = if (isPressed) 12f else 6f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "fetchButtonElevation"
+    )
+
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        shape = CustomExpressiveShapes.ExpressiveButton,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = elevation.dp,
+            pressedElevation = (elevation + 2f).dp
+        ),
+        interactionSource = interactionSource,
+        modifier = modifier.scale(scale)
+    ) {
+        // Animated content transition for button text/loading
+        AnimatedContent(
+            targetState = isLoading,
+            transitionSpec = {
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
                     )
-                } else {
-                    Text(
-                        text = if (uiState.hasContent) "Get Another Reason" else "Get a Reason",
-                        style = MaterialTheme.typography.labelLarge
+                ) togetherWith fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 200,
+                        easing = LinearEasing
                     )
-                }
+                )
+            },
+            label = "buttonContentTransition"
+        ) { loading ->
+            if (loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text = if (hasContent) "Get Another Reason" else "Get a Reason",
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         }
     }
